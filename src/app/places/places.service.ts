@@ -11,21 +11,27 @@ export class PlacesService {
       title: 'Manhattan House',
       description: 'Hear of New York',
       image: 'https://media-cdn.tripadvisor.com/media/photo-p/12/9b/cd/3c/manhattn-s-burgers-beurs.jpg',
-      price: 145
+      price: 145,
+      availableFrom: new Date('2019-01-01'),
+      availableTo: new Date('2019-12-31')
     },
     {
       id: 'p2',
       title: 'LA House',
       description: 'Hear of Los Angeles',
       image: 'https://media-cdn.tripadvisor.com/media/photo-p/12/9b/cd/3c/manhattn-s-burgers-beurs.jpg',
-      price: 666
+      price: 666,
+      availableFrom: new Date('2019-01-01'),
+      availableTo: new Date('2019-12-31')
     },
     {
       id: 'p3',
       title: 'Paris House',
       description: 'Hear of Los Paris',
       image: 'https://media-cdn.tripadvisor.com/media/photo-p/12/9b/cd/3c/manhattn-s-burgers-beurs.jpg',
-      price: 345.99
+      price: 345.99,
+      availableFrom: new Date('2019-01-01'),
+      availableTo: new Date('2019-12-31')
     }
   ];
 

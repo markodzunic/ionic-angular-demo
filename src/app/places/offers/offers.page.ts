@@ -1,7 +1,7 @@
 import {Component, OnDestroy, OnInit} from '@angular/core';
 import {PlacesModel} from '../places.model';
 import {PlacesService} from '../places.service';
-import {IonItemSliding} from '@ionic/angular';
+import {IonItemSliding, LoadingController} from '@ionic/angular';
 import {Router} from '@angular/router';
 import {Subscription} from 'rxjs';
 
@@ -12,10 +12,12 @@ import {Subscription} from 'rxjs';
 })
 export class OffersPage implements OnInit, OnDestroy {
   offers: PlacesModel[];
+  isLoading = false;
   placesSub: Subscription;
 
   constructor(private offerService: PlacesService,
-              private router: Router) { }
+              private router: Router,
+              private loading: LoadingController) { }
 
   ngOnInit() {
     this.placesSub = this.offerService.places.subscribe(places => {
@@ -27,6 +29,17 @@ export class OffersPage implements OnInit, OnDestroy {
     if (this.placesSub) {
       this.placesSub.unsubscribe();
     }
+  }
+
+  ionViewWillEnter() {
+    this.isLoading = true;
+    this.loading.create({message: 'loading....'}).then(el => {
+      el.present();
+      this.offerService.fetchPlaces().subscribe(() => {
+        this.isLoading = false;
+        el.dismiss();
+      });
+    });
   }
 
   onEdit(id: string, sliding: IonItemSliding) {

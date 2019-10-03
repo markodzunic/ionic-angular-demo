@@ -25,7 +25,14 @@
   </ion-grid>
   <ion-grid *ngIf="relevantPlaces.length > 0">
     <ion-row>
-      <ion-col size="12" size-sm="8" offset-md="2" text-center>
+      <div *ngIf="isLoading" text-center>
+        <ion-spinner color="primary"></ion-spinner>
+      </div>
+      <div text-center *ngIf="!isLoading && (!relevantPlaces || relevantPlaces.length <= 0)">
+        <p>No Offers pls Create one.</p>
+        <ion-button color="primary" routerLink="/places/tabs/offers/new">Offer New Place</ion-button>
+      </div>
+      <ion-col size="12" size-sm="8" offset-md="2" text-center *ngIf="!isLoading && relevantPlaces.length > 0">
         <ion-card>
           <ion-card-header>
             <ion-card-title>

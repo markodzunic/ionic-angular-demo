@@ -1,50 +1,28 @@
 import { Injectable } from '@angular/core';
 import {PlacesModel} from './places.model';
 import {AuthService} from '../auth/auth.service';
-import {BehaviorSubject} from 'rxjs';
-import {take, map, tap, delay} from 'rxjs/operators';
+import {BehaviorSubject, of} from 'rxjs';
+import {take, map, tap, delay, switchMap} from 'rxjs/operators';
+import {HttpClient} from '@angular/common/http';
+
+interface PlaceData {
+   title: string;
+   description: string;
+   image: string;
+   price: number;
+   availableFrom: Date;
+   availableTo: Date;
+   userId: string;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class PlacesService {
-  private placesData = new BehaviorSubject<PlacesModel[]>(
-      [
-        {
-          id: 'p1',
-          title: 'Manhattan House',
-          description: 'Hear of New York',
-          image: 'https://media-cdn.tripadvisor.com/media/photo-p/12/9b/cd/3c/manhattn-s-burgers-beurs.jpg',
-          price: 145,
-          availableFrom: new Date('2019-01-01'),
-          availableTo: new Date('2019-12-31'),
-          userId: 'aaa'
-        },
-        {
-          id: 'p2',
-          title: 'LA House',
-          description: 'Hear of Los Angeles',
-          image: 'https://media-cdn.tripadvisor.com/media/photo-p/12/9b/cd/3c/manhattn-s-burgers-beurs.jpg',
-          price: 666,
-          availableFrom: new Date('2019-01-01'),
-          availableTo: new Date('2019-12-31'),
-          userId: 'aaa'
-        },
-        {
-          id: 'p3',
-          title: 'Paris House',
-          description: 'Hear of Los Paris',
-          image: 'https://media-cdn.tripadvisor.com/media/photo-p/12/9b/cd/3c/manhattn-s-burgers-beurs.jpg',
-          price: 345.99,
-          availableFrom: new Date('2019-01-01'),
-          availableTo: new Date('2019-12-31'),
-          userId: 'aaa'
-        }
-      ]
-  );
+  private placesData = new BehaviorSubject<PlacesModel[]>([]);
 
-  constructor(private authService: AuthService) {
-
+  constructor(private authService: AuthService,
+              private http: HttpClient) {
   }
 
   get places() {
@@ -52,12 +30,52 @@ export class PlacesService {
   }
 
   getPlace(id: string) {
+    this.http.get<PlaceData>(`https://ionic-angular-demo-88359.firebaseio.com/offer-places/${id}.json`).pipe(map(placeData => {
+      return new PlacesModel(
+          id,
+          placeData.title,
+          placeData.description,
+          placeData.image,
+          placeData.price,
+          placeData.availableFrom,
+          placeData.availableTo,
+          placeData.userId
+      );
+    }));
     return this.places.pipe(take(1), map(places => {
       return {...places.find(p => p.id === id)};
     }));
   }
 
+  fetchPlaces() {
+    return this.http.get<{[key: string]: PlaceData}>('https://ionic-angular-demo-88359.firebaseio.com/offer-places.json')
+        .pipe(
+            map(resData => {
+              const places = [];
+              for (const key in resData) {
+                if (resData.hasOwnProperty(key)) {
+                  places.push(new PlacesModel(
+                      key,
+                      resData[key].title,
+                      resData[key].description,
+                      resData[key].image,
+                      resData[key].price,
+                      new Date(resData[key].availableFrom),
+                      new Date(resData[key].availableTo),
+                      resData[key].userId,
+                  ));
+                }
+              }
+              return places;
+            }),
+            tap(places => {
+              this.placesData.next(places);
+            })
+        );
+  }
+
   addPlace(title: string, description: string, price: number, dateFrom: Date, dateTo: Date) {
+    let generatedId: string;
     const newPlace = new PlacesModel(
         Math.random().toString(),
         title,
@@ -68,28 +86,52 @@ export class PlacesService {
         dateTo,
         this.authService.userId
     );
-    return this.places.pipe(take(1), delay(1000), tap( places => {
-      this.placesData.next(places.concat(newPlace));
-    }));
+    return this.http.post<{name: string}>('https://ionic-angular-demo-88359.firebaseio.com/offer-places.json', { ...newPlace, id: null })
+        .pipe(
+            switchMap(resData => {
+              generatedId = resData.name;
+              return this.places;
+            }),
+            take(1),
+            tap( places => {
+              newPlace.id = generatedId;
+              this.placesData.next(places.concat(newPlace));
+            })
+        );
+    // return this.places.pipe(take(1), delay(1000), tap( places => {
+    //   this.placesData.next(places.concat(newPlace));
+    // }));
   }
 
   updatePlace(placeId: string, title: string, description: string) {
-    return this.places.pipe(take(1), delay(1000), tap(places => {
-      const updatedPlaceIndex = places.findIndex(pl => {
-        return pl.id === placeId;
-      });
-      const updatedPlaces = [...places];
-      const oldPlace = updatedPlaces[updatedPlaceIndex];
-      updatedPlaces[updatedPlaceIndex] = new PlacesModel(
-          oldPlace.id,
-          title,
-          description,
-          oldPlace.image,
-          oldPlace.price,
-          oldPlace.availableFrom,
-          oldPlace.availableTo,
-          oldPlace.userId
-      );
+    let updatedPlaces: PlacesModel[];
+    return this.places.pipe(take(1), switchMap(places => {
+        if (!places && places.length <= 0) {
+            return this.fetchPlaces();
+        } else {
+            return of(places);
+        }
+    }), switchMap(places => {
+        const updatedPlaceIndex = places.findIndex(pl => {
+            return pl.id === placeId;
+        });
+        updatedPlaces = [...places];
+        const oldPlace = updatedPlaces[updatedPlaceIndex];
+        updatedPlaces[updatedPlaceIndex] = new PlacesModel(
+              oldPlace.id,
+              title,
+              description,
+              oldPlace.image,
+              oldPlace.price,
+              oldPlace.availableFrom,
+              oldPlace.availableTo,
+              oldPlace.userId
+          );
+        return this.http.put(`https://ionic-angular-demo-88359.firebaseio.com/offer-places/${placeId}.json`,
+          {
+            ...updatedPlaces[updatedPlaceIndex], id: null
+          });
+    }), tap(() => {
       this.placesData.next(updatedPlaces);
     }));
   }

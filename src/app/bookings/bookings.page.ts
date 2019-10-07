@@ -15,6 +15,7 @@ export class BookingsPage implements OnInit, OnDestroy {
               private loading: LoadingController) { }
 
   loadedBookings: BookingsModel[];
+  isLoading = false;
   private bookingSub: Subscription;
 
   ngOnInit() {
@@ -28,6 +29,12 @@ export class BookingsPage implements OnInit, OnDestroy {
     }
   }
 
+  ionViewWillEnter() {
+    this.isLoading = true;
+    this.bookingsService.fetchBookings().subscribe(() => {
+      this.isLoading = false;
+    });
+  }
   onCancelBooking(bookingId: string, sliding: IonItemSliding) {
     sliding.close();
     this.loading.create({message: 'canceling....'}).then(el => {

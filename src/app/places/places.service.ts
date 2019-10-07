@@ -68,6 +68,7 @@ export class PlacesService {
               }
               return places;
             }),
+            take(1),
             tap(places => {
               this.placesData.next(places);
             })

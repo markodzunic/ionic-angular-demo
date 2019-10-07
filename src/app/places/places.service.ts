@@ -4,6 +4,7 @@ import {AuthService} from '../auth/auth.service';
 import {BehaviorSubject, of} from 'rxjs';
 import {take, map, tap, delay, switchMap} from 'rxjs/operators';
 import {HttpClient} from '@angular/common/http';
+import {PlaceLocation} from './location.model';
 
 interface PlaceData {
    title: string;
@@ -13,6 +14,7 @@ interface PlaceData {
    availableFrom: Date;
    availableTo: Date;
    userId: string;
+   location: PlaceLocation;
 }
 
 @Injectable({
@@ -39,7 +41,8 @@ export class PlacesService {
           placeData.price,
           placeData.availableFrom,
           placeData.availableTo,
-          placeData.userId
+          placeData.userId,
+          placeData.location
       );
     }));
     return this.places.pipe(take(1), map(places => {
@@ -63,6 +66,7 @@ export class PlacesService {
                       new Date(resData[key].availableFrom),
                       new Date(resData[key].availableTo),
                       resData[key].userId,
+                      resData[key].location,
                   ));
                 }
               }
@@ -75,7 +79,7 @@ export class PlacesService {
         );
   }
 
-  addPlace(title: string, description: string, price: number, dateFrom: Date, dateTo: Date) {
+  addPlace(title: string, description: string, price: number, dateFrom: Date, dateTo: Date, location: PlaceLocation) {
     let generatedId: string;
     const newPlace = new PlacesModel(
         Math.random().toString(),
@@ -85,7 +89,8 @@ export class PlacesService {
         price,
         dateFrom,
         dateTo,
-        this.authService.userId
+        this.authService.userId,
+        location
     );
     return this.http.post<{name: string}>('https://ionic-angular-demo-88359.firebaseio.com/offer-places.json', { ...newPlace, id: null })
         .pipe(
@@ -126,7 +131,8 @@ export class PlacesService {
               oldPlace.price,
               oldPlace.availableFrom,
               oldPlace.availableTo,
-              oldPlace.userId
+              oldPlace.userId,
+              oldPlace.location
           );
         return this.http.put(`https://ionic-angular-demo-88359.firebaseio.com/offer-places/${placeId}.json`,
           {

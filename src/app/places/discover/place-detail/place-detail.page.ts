@@ -7,6 +7,7 @@ import {CreateBookingComponent} from '../../../bookings/create-booking/create-bo
 import {Subscription} from 'rxjs';
 import {BookingService} from '../../../bookings/booking.service';
 import {AuthService} from '../../../auth/auth.service';
+import {MapModalComponent} from '../../../shared/map-modal/map-modal.component';
 
 @Component({
   selector: 'app-place-detail',
@@ -28,7 +29,8 @@ export class PlaceDetailPage implements OnInit, OnDestroy {
               private loading: LoadingController,
               private authService: AuthService,
               private alertCtrl: AlertController,
-              private router: Router) { }
+              private router: Router,
+              private modalCtrl: ModalController) { }
 
   ngOnInit() {
     this.route.paramMap.subscribe(paramMap => {
@@ -121,5 +123,24 @@ export class PlaceDetailPage implements OnInit, OnDestroy {
         });
       }
     });
+  }
+
+  onShowFullMap() {
+    this.modalCtrl
+        .create({
+          component: MapModalComponent,
+          componentProps: {
+            center: {
+              lat: this.place.location.lat,
+              lng: this.place.location.lng
+            },
+            selectable: false,
+            closeButtonText: 'Close',
+            title: this.place.location.address
+          }
+        })
+        .then(modalEl => {
+          modalEl.present();
+        });
   }
 }

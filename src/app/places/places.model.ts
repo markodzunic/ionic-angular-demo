@@ -8,7 +8,7 @@ export class PlacesModel {
                 public price: number,
                 public availableFrom: Date,
                 public availableTo: Date,
-                public userId: string,
+                public userId: unknown,
                 public location: PlaceLocation) {
 
     }

@@ -1,6 +1,6 @@
 export class BookingsModel {
     constructor(public id: string,
-                public placeId: string,
+                public placeId: unknown,
                 public userId: string,
                 public placeTitle: string,
                 public firstName: string,

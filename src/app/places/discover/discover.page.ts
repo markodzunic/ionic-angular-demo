@@ -5,6 +5,7 @@ import { SegmentChangeEventDetail } from '@ionic/core';
 import {Subscription} from 'rxjs';
 import {AuthService} from '../../auth/auth.service';
 import {LoadingController} from '@ionic/angular';
+import {take} from 'rxjs/operators';
 
 @Component({
   selector: 'app-discover',
@@ -46,12 +47,14 @@ export class DiscoverPage implements OnInit, OnDestroy {
   }
 
   onFilterUpdate(event: CustomEvent<SegmentChangeEventDetail>) {
+    this.authService.userId.pipe(take(1)).subscribe(userId => {
       if (event.detail.value === 'all') {
         this.relevantPlaces = this.loadedPlaces;
       } else {
         this.relevantPlaces = this.loadedPlaces.filter(place => {
-          return place.userId !== this.authService.userId;
+          return place.userId !== userId;
         });
       }
-    }
+    });
+  }
 }

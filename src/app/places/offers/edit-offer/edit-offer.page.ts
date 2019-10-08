@@ -15,7 +15,7 @@ export class EditOfferPage implements OnInit, OnDestroy {
   offer: PlacesModel;
   form: FormGroup;
   isLoading = false;
-  placeId: string;
+  placeId: string | boolean;
   private placesSub: Subscription;
 
   constructor(private route: ActivatedRoute,

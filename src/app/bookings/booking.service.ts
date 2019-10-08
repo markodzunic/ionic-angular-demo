@@ -39,20 +39,31 @@ export class BookingService {
         bookedFrom: Date,
         bookedTo: Date) {
         let generatedId: string;
-        const newBooking = new BookingsModel(
-            Math.random().toString(),
-            this.authService.userId,
-            placeId,
-            placeTitle,
-            firstName,
-            lastName,
-            guestNumber,
-            placeImage,
-            bookedFrom,
-            bookedTo
-        );
-        return this.http.post<{name: string}>('https://ionic-angular-demo-88359.firebaseio.com/bookings.json', { ...newBooking, id: null}).
-        pipe(switchMap(resData => {
+        let newBooking: BookingsModel;
+        let fechedUserId: string;
+
+        return this.authService.userId.pipe(take(1), switchMap(userId => {
+            if (!userId) {
+                throw new Error('Not found id');
+            }
+            fechedUserId = userId;
+            return this.authService.token;
+        }), take(1), switchMap(token => {
+            newBooking = new BookingsModel(
+                Math.random().toString(),
+                fechedUserId,
+                placeId,
+                placeTitle,
+                firstName,
+                lastName,
+                guestNumber,
+                placeImage,
+                bookedFrom,
+                bookedTo
+            );
+            return this.http.post<{name: string}>(
+                `https://ionic-angular-demo-88359.firebaseio.com/bookings.json?auth=${token}`, { ...newBooking, id: null});
+        }), switchMap(resData => {
             generatedId = resData.name;
             return this.bookings;
         }), take(1), tap(bookings => {
@@ -62,25 +73,25 @@ export class BookingService {
     }
 
     fetchBookings() {
-        return this.http.get<{[key: string]: BookingsData}>
-        (`https://ionic-angular-demo-88359.firebaseio.com/bookings.json?orderBy="userId"&equalTo="${this.authService.userId}"`)
-            .pipe(
-                map(resData => {
+        let fetchedUserId: string;
+
+        return this.authService.userId.pipe(take(1), switchMap(userId => {
+            if (!userId) {
+                throw new Error('Not found id');
+            }
+            fetchedUserId = userId;
+            return this.authService.token;
+        }), take(1), switchMap(token => {
+            return this.http.get<{[key: string]: BookingsData}>
+                (`https://ionic-angular-demo-88359.firebaseio.com/bookings.json?orderBy="userId"&equalTo="${fetchedUserId}"&auth=${token}`);
+        }), map(resData => {
                     const places = [];
                     for (const key in resData) {
                         if (resData.hasOwnProperty(key)) {
-                            places.push(new BookingsModel(
-                                key,
-                                resData[key].placeId,
-                                resData[key].userId,
-                                resData[key].placeTitle,
-                                resData[key].firstName,
-                                resData[key].lastName,
-                                resData[key].guestNumber,
-                                resData[key].placeImage,
-                                new Date(resData[key].bookedFrom),
-                                new Date(resData[key].bookedTo),
-                            ));
+                            places.push(
+                                new BookingsModel(key, resData[key].placeId, resData[key].userId, resData[key].placeTitle,
+                                    resData[key].firstName, resData[key].lastName, resData[key].guestNumber,
+                                    resData[key].placeImage, new Date(resData[key].bookedFrom), new Date(resData[key].bookedTo)));
                         }
                     }
                     return places;
@@ -92,8 +103,9 @@ export class BookingService {
             );
     }
     cancelBooking(bookingId: string) {
-        return this.http.delete(`https://ionic-angular-demo-88359.firebaseio.com/bookings/${bookingId}.json`).
-        pipe(switchMap(() => {
+        return this.authService.token.pipe(take(1), switchMap(token => {
+            return this.http.delete(`https://ionic-angular-demo-88359.firebaseio.com/bookings/${bookingId}.json?auth=${token}`);
+        }), switchMap(() => {
             return this.bookings;
         }), take(1), tap(bookings => {
             this.bookingsData.next(bookings.filter(b => {

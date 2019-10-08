@@ -5,6 +5,7 @@ const os = require('os');
 const path = require('path');
 const fs = require('fs');
 const uuid = require('uuid/v4');
+const fbAdmin = require('firebase-admin');
 
 const { Storage } = require('@google-cloud/storage');
 
@@ -12,11 +13,24 @@ const storage = new Storage({
     projectId: 'ionic-angular-demo'
 });
 
+fbAdmin.initializeApp({credential: fbAdmin.credential.cert(require('./ionic-app.json'))});
+
 exports.storeImage = functions.https.onRequest((req, res) => {
     return cors(req, res, () => {
         if (req.method !== 'POST') {
             return res.status(500).json({ message: 'Not allowed.' });
         }
+
+        if (
+            !req.headers.authorization ||
+            !req.headers.authorization.startsWith('Bearer ')
+        ) {
+            return res.status(401).json({ error: 'Unauthorized!' });
+        }
+
+        let idToken;
+        idToken = req.headers.authorization.split('Bearer ')[1];
+
         const busboy = new Busboy({ headers: req.headers });
         let uploadData;
         let oldImagePath;
@@ -39,24 +53,29 @@ exports.storeImage = functions.https.onRequest((req, res) => {
             }
 
             console.log(uploadData.type);
-            return storage
-                .bucket('ionic-angular-demo.appspot.com')
-                .upload(uploadData.filePath, {
-                    uploadType: 'media',
-                    destination: imagePath,
-                    metadata: {
-                        metadata: {
-                            contentType: uploadData.type,
-                            firebaseStorageDownloadTokens: id
-                        }
-                    }
+            return fbAdmin
+                .auth()
+                .verifyIdToken(idToken)
+                .then(decodedToken => {
+                    console.log(uploadData.type);
+                    return storage
+                        .bucket('YOUR_FIREBASE_PROJECT_ID.appspot.com')
+                        .upload(uploadData.filePath, {
+                            uploadType: 'media',
+                            destination: imagePath,
+                            metadata: {
+                                metadata: {
+                                    contentType: uploadData.type,
+                                    firebaseStorageDownloadTokens: id
+                                }
+                            }
+                        });
                 })
-
                 .then(() => {
                     return res.status(201).json({
                         imageUrl:
                             'https://firebasestorage.googleapis.com/v0/b/' +
-                            storage.bucket('ionic-angular-demo.appspot.com').name +
+                            storage.bucket('YOUR_FIREBASE_PROJECT_ID.appspot.com').name +
                             '/o/' +
                             encodeURIComponent(imagePath) +
                             '?alt=media&token=' +
@@ -68,6 +87,7 @@ exports.storeImage = functions.https.onRequest((req, res) => {
                     console.log(error);
                     return res.status(401).json({ error: 'Unauthorized!' });
                 });
+
         });
         return busboy.end(req.rawBody);
     });

@@ -79,13 +79,23 @@ export class PlacesService {
         );
   }
 
-  addPlace(title: string, description: string, price: number, dateFrom: Date, dateTo: Date, location: PlaceLocation) {
+  uploadImage(image: File) {
+    const uploadData = new FormData();
+    uploadData.append('image', image);
+
+    return this.http.post<{imageUrl: string, imagePath: string}>(
+        'https://us-central1-ionic-angular-demo-88359.cloudfunctions.net/storeImage',
+          uploadData
+      );
+  }
+
+  addPlace(title: string, description: string, price: number, dateFrom: Date, dateTo: Date, location: PlaceLocation, imageUrl: string) {
     let generatedId: string;
     const newPlace = new PlacesModel(
         Math.random().toString(),
         title,
         description,
-        'https://media-cdn.tripadvisor.com/media/photo-p/12/9b/cd/3c/manhattn-s-burgers-beurs.jpg',
+        imageUrl,
         price,
         dateFrom,
         dateTo,

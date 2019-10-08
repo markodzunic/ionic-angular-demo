@@ -4,6 +4,7 @@ import {PlacesService} from '../../places.service';
 import {Router} from '@angular/router';
 import {LoadingController} from '@ionic/angular';
 import {PlaceLocation} from '../../location.model';
+import {switchMap} from 'rxjs/operators';
 
 @Component({
   selector: 'app-new-offer',
@@ -46,7 +47,7 @@ export class NewOfferPage implements OnInit {
   }
 
   onLocationPicked(location: PlaceLocation) {
-    this.form.patchValue({ location: location });
+    this.form.patchValue({ location });
   }
 
   onCreate() {
@@ -58,14 +59,17 @@ export class NewOfferPage implements OnInit {
       message: 'creating....'
     }).then(loadingEl => {
       loadingEl.present();
-      this.placeService.addPlace(
-          this.form.value.title,
-          this.form.value.description,
-          +this.form.value.price,
-          new Date(this.form.value.dateFrom),
-          new Date(this.form.value.dateTo),
-          this.form.value.location
-      ).subscribe( () => {
+      this.placeService.uploadImage(this.form.get('image').value).pipe(switchMap(response => {
+        return this.placeService.addPlace(
+            this.form.value.title,
+            this.form.value.description,
+            +this.form.value.price,
+            new Date(this.form.value.dateFrom),
+            new Date(this.form.value.dateTo),
+            this.form.value.location,
+            response.imageUrl
+        );
+      })).subscribe( () => {
         loadingEl.dismiss();
         this.form.reset();
         this.router.navigateByUrl('/places/tabs/offers');

@@ -1,0 +1,7 @@
+{
+  "appId": "com.ionic.angular",
+  "appName": "ionic-angular-demo",
+  "bundledWebRuntime": false,
+  "npmClient": "npm",
+  "webDir": "www"
+}
